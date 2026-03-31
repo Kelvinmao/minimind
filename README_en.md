@@ -229,10 +229,60 @@ After this update, maintenance for the entire `minimind-v1` series will be disco
 ## Step 0
 
 ```bash
-# Clone repository and install dependencies
+# Clone repository
 git clone --depth 1 https://github.com/jingyaogong/minimind
-cd minimind && pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple
+cd minimind
 ```
+
+### Option A: Local Python Virtual Environment
+
+```bash
+# Install uv (choose one)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+# or: python -m pip install --user uv
+
+# Create the environment using the pinned Python version
+uv python install 3.10.16
+uv venv --python 3.10.16
+source .venv/bin/activate
+uv sync --no-install-project
+
+# GPU environment (default, official PyTorch index)
+uv pip install --python .venv/bin/python torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
+
+# For CPU-only environments, use:
+# uv pip install --python .venv/bin/python torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cpu
+```
+
+The repository now includes `pyproject.toml` and `.python-version`; going forward, prefer `uv add` and `uv remove` for dependency maintenance.
+
+### Option B: Docker (Official Python Image)
+
+The repository now includes a root `Dockerfile` based on the official `python:3.10.16-slim` image, and it uses `uv` inside the container to create `.venv` and install dependencies.
+
+```bash
+# GPU image (defaults to the official PyTorch cu124 index)
+docker build -t minimind:py310 .
+
+# Start a container
+docker run --rm -it \
+  --gpus all \
+  -v $(pwd):/workspace/minimind \
+  -w /workspace/minimind \
+  minimind:py310
+```
+
+For a CPU-only image, switch to the official CPU index during build:
+
+```bash
+docker build \
+  --build-arg PYTORCH_INDEX_URL=https://download.pytorch.org/whl/cpu \
+  -t minimind:py310-cpu .
+```
+
+> If you plan to train inside Docker, make sure the host has NVIDIA Container Toolkit installed. For inference or lightweight verification, the CPU image is enough.
+
+> `requirements.txt` is still kept for compatibility with older workflows or external tools, but `uv` is now the recommended way to manage the environment.
 
 ## Ⅰ 🚀 Model Inference
 

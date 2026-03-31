@@ -230,10 +230,60 @@ minimind2系列旧模型均经过权重映射+（微调训练）QKVO线性层校
 ## 第0步
 
 ```bash
-# 克隆仓库、安装依赖
+# 克隆仓库
 git clone --depth 1 https://github.com/jingyaogong/minimind
-cd minimind && pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple
+cd minimind
 ```
+
+### 方式 A：本机 Python 虚拟环境
+
+```bash
+# 安装 uv（任选一种）
+curl -LsSf https://astral.sh/uv/install.sh | sh
+# 或：python -m pip install --user uv
+
+# 使用仓库内声明的 Python 版本创建环境
+uv python install 3.10.16
+uv venv --python 3.10.16
+source .venv/bin/activate
+uv sync --no-install-project
+
+# GPU 环境（默认，官方 PyTorch 源）
+uv pip install --python .venv/bin/python torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
+
+# CPU 环境可改为
+# uv pip install --python .venv/bin/python torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cpu
+```
+
+仓库根目录已新增 `pyproject.toml` 与 `.python-version`，后续依赖更新建议优先使用 `uv add` / `uv remove` 维护。
+
+### 方式 B：Docker（官方 Python Image）
+
+仓库已提供根目录 `Dockerfile`，基础镜像为官方 `python:3.10.16-slim`，容器内使用 `uv` 创建 `.venv` 并安装依赖。
+
+```bash
+# GPU 版本镜像（默认使用官方 PyTorch cu124 源）
+docker build -t minimind:py310 .
+
+# 进入容器
+docker run --rm -it \
+  --gpus all \
+  -v $(pwd):/workspace/minimind \
+  -w /workspace/minimind \
+  minimind:py310
+```
+
+如仅需 CPU 环境，可在构建时切换官方 CPU 源：
+
+```bash
+docker build \
+  --build-arg PYTORCH_INDEX_URL=https://download.pytorch.org/whl/cpu \
+  -t minimind:py310-cpu .
+```
+
+> 若使用 Docker 训练，请确保宿主机已正确安装 NVIDIA Container Toolkit；若仅推理或做轻量验证，也可直接使用 CPU 镜像。
+
+> `requirements.txt` 目前保留给兼容旧工作流或第三方工具使用，主推荐环境管理方式已切换为 `uv`。
 
 ## Ⅰ 🚀 模型推理
 
